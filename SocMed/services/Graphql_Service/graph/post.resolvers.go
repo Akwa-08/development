@@ -113,6 +113,11 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.CreatePos
 	return &model.Post{PostID: postID, Title: input.Title, Content: input.Content, AuthorID: input.AuthorID, CreatedAt: createdAt.Format(time.RFC3339)}, nil
 }
 
+// UpdatePost is the resolver for the updatePost field.
+func (r *mutationResolver) UpdatePost(ctx context.Context, input model.UpdatePostInput) (*model.Post, error) {
+	panic(fmt.Errorf("not implemented: UpdatePost - updatePost"))
+}
+
 // DeletePost resolver - Belongs to mutationResolver
 func (r *mutationResolver) DeletePost(ctx context.Context, postID string) (bool, error) {
 	// Add this detailed logging at the entry point
@@ -446,3 +451,42 @@ func (r *queryResolver) GetFeed(ctx context.Context, limit *int32, offset *int32
 	log.Printf("GetFeed: Returning %d posts for user %s", len(posts), currentUserID)
 	return posts, nil
 }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *postResolver) CommentsCount(ctx context.Context, obj *model.Post) (int, error) {
+	// Check if we have a valid post ID
+	if obj.PostID == "" {
+		return 0, nil
+	}
+
+	db, err := getDB()
+	if err != nil {
+		log.Printf("CommentsCount DB Error: %v", err)
+		return 0, nil // Return 0 on error to avoid breaking the UI
+	}
+	defer db.Close()
+
+	var count int
+	queryCtx, cancelQuery := context.WithTimeout(ctx, 5*time.Second)
+	defer cancelQuery()
+	err = db.QueryRowContext(queryCtx,
+		"SELECT COUNT(*) FROM comments WHERE post_id = $1",
+		obj.PostID).Scan(&count)
+	if err != nil {
+		log.Printf("CommentsCount DB Error counting comments: %v", err)
+		return 0, nil
+	}
+
+	return count, nil
+}
+func (r *postResolver) Comments(ctx context.Context, obj *model.Post) ([]*model.Comment, error) {
+	// Return an empty array by default
+	return []*model.Comment{}, nil
+}
+*/

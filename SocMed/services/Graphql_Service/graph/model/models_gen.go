@@ -16,6 +16,21 @@ type Account struct {
 	UpdatedAt   *string `json:"updatedAt,omitempty"`
 }
 
+type Comment struct {
+	CommentID string   `json:"commentId"`
+	PostID    string   `json:"postId"`
+	AuthorID  string   `json:"authorId"`
+	Author    *Account `json:"author"`
+	Content   string   `json:"content"`
+	CreatedAt string   `json:"createdAt"`
+	UpdatedAt *string  `json:"updatedAt,omitempty"`
+}
+
+type CreateCommentInput struct {
+	PostID  string `json:"postId"`
+	Content string `json:"content"`
+}
+
 type CreatePostInput struct {
 	Title    string `json:"title"`
 	Content  string `json:"content"`
@@ -56,13 +71,17 @@ type Notification struct {
 }
 
 type Post struct {
-	PostID    string   `json:"postId"`
-	Title     string   `json:"title"`
-	Content   string   `json:"content"`
-	AuthorID  string   `json:"authorId"`
-	Author    *Account `json:"author"`
-	CreatedAt string   `json:"createdAt"`
-	UpdatedAt *string  `json:"updatedAt,omitempty"`
+	PostID        string     `json:"postId"`
+	Title         string     `json:"title"`
+	Content       string     `json:"content"`
+	AuthorID      string     `json:"authorId"`
+	Author        *Account   `json:"author"`
+	Comments      []*Comment `json:"comments"`
+	CommentsCount int32      `json:"commentsCount"`
+	CreatedAt     string     `json:"createdAt"`
+	UpdatedAt     *string    `json:"updatedAt,omitempty"`
+	LikesCount    int32      `json:"likesCount"`
+	IsLiked       bool       `json:"isLiked"`
 }
 
 type Profile struct {
@@ -99,6 +118,17 @@ type Todo struct {
 	Text string `json:"text"`
 	Done bool   `json:"done"`
 	User *User  `json:"user"`
+}
+
+type UpdateCommentInput struct {
+	CommentID string `json:"commentId"`
+	Content   string `json:"content"`
+}
+
+type UpdatePostInput struct {
+	PostID  string `json:"postId"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }
 
 type User struct {

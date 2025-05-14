@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react"
-import { useMutation } from '@apollo/client'; // Added import
-import { DELETE_POST } from '../graphql/mutations'; // Added import
+import { useMutation } from '@apollo/client'; 
+import { DELETE_POST } from '../graphql/mutations';
 import {
   Box,
   Container,
@@ -31,25 +31,27 @@ import {
   Person as PersonIcon,
   MoreHoriz as MoreHorizIcon,
   Close as CloseIcon,
-  ChatBubbleOutline as ChatBubbleOutlineIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-  Delete as DeleteIcon, // Added import
+  Delete as DeleteIcon,
 } from "@mui/icons-material"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "../lib/supabase"
 import FollowButton from "./FollowButton"
+import PostCard from './PostCard'; // Import the PostCard component
 
 // Interface for posts fetched via Supabase
 interface Post {
-  post_id: string
-  title: string
-  content: string
-  created_at: string
+  post_id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  commentsCount?: number;
+  likesCount?: number;  // Add this property
+  isLiked?: boolean;    // Add this property
   author: {
-    id: string
-    first_name: string
-    last_name: string
-  } | null
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
 }
 
 // Interface for current user data
@@ -130,7 +132,7 @@ export default function Posts() {
     return "just now"
   }
 
-  // Open menu - Updated to include author ID
+  // Open menu
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>, postId: string) => {
     setMenuAnchorEl(event.currentTarget)
     setActivePostId(postId)
@@ -158,7 +160,7 @@ export default function Posts() {
     }, 5000)
   }
 
-  // Add a new function to handle post deletion
+  // Add a function to handle post deletion
   const handleDeletePost = (postId: string) => {
     if (deleteLoading) return;
     
@@ -197,7 +199,7 @@ export default function Posts() {
     setNotification(null)
   }
 
-  // Fetch current user (keep this)
+  // Fetch current user
   const fetchCurrentUser = useCallback(async () => {
     setCurrentUserLoading(true)
     try {
@@ -223,7 +225,7 @@ export default function Posts() {
     }
   }, [])
 
-  // Fetch posts via Supabase (keep this, but ensure author ID is selected)
+  // Fetch posts via Supabase
   const fetchPosts = useCallback(async () => {
     setError(null) // Clear previous errors
     setLoadingPosts(true)
@@ -379,32 +381,6 @@ export default function Posts() {
                   </Typography>
                 </Box>
               </Box>
-              {/* <List>
-                <ListItem disablePadding>
-                  <ListItemButton sx={{ borderRadius: 30 }}>
-                    <ListItemIcon>
-                      <HomeIcon />
-                    </ListItemIcon>
-                    <ListItemText primary="Home" primaryTypographyProps={{ fontWeight: "bold" }} />
-                  </ListItemButton>
-                </ListItem>
-                <ListItem disablePadding>
-                  <ListItemButton sx={{ borderRadius: 30 }}>
-                    <ListItemIcon>
-                      <NotificationsIcon />
-                    </ListItemIcon>
-                    <ListItemText primary="Notifications" />
-                  </ListItemButton>
-                </ListItem>
-                <ListItem disablePadding>
-                  <ListItemButton sx={{ borderRadius: 30 }}>
-                    <ListItemIcon>
-                      <EmailIcon />
-                    </ListItemIcon>
-                    <ListItemText primary="Messages" />
-                  </ListItemButton>
-                </ListItem>
-              </List> */}
               <Box sx={{ mt: 2, mb: 2 }}>
                 <Button
                   variant="contained"
@@ -446,132 +422,34 @@ export default function Posts() {
               </Box>
             ) : (
               <Box sx={{ bgcolor: "white" }}>
-                {visiblePosts.map((post) => {
-                  // Determine follow status for this author from the map
-                  const isFollowingAuthor = post.author?.id ? (followingStatus.get(post.author.id) ?? false) : false
-                  const postDate = new Date(post.created_at)
-                  const timeAgo = getTimeAgo(postDate)
-                  // Check if current user is the author
-                  const isOwnPost = currentUser && post.author && post.author.id === currentUser.id;
-
-                  return (
-                    <Box
-                      key={post.post_id}
-                      sx={{
-                        p: 3,
-                        width: 1000,
-                        borderBottom: "1px solid #eee",
-                        "&:hover": { bgcolor: "rgba(0, 0, 0, 0.01)" },
-                      }}
-                    >
-                      <Box sx={{ display: "flex" }}>
-                        <Avatar
-                          sx={{
-                            width: 48,
-                            height: 48,
-                            mr: 2,
-                          }}
-                        >
-                          {post.author?.first_name?.[0]?.toUpperCase() ?? "?"}
-                        </Avatar>
-
-                        <Box sx={{ width: "100%" }}>
-                          <Box sx={{ display: "flex", alignItems: "center", mb: 0.5, justifyContent: "space-between" }}>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <Typography fontWeight="bold" sx={{ mr: 1 }}>
-                                {post.author?.first_name ?? "Unknown"} {post.author?.last_name ?? "User"}
-                              </Typography>
-                              {/* <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
-                                @{post.author?.first_name?.toLowerCase() ?? "unknown"}
-                                {post.author?.last_name?.toLowerCase() ?? "user"}
-                              </Typography> */}
-                              <Typography variant="body2" color="text.secondary" sx={{ mr: 1 }}>
-                                · {timeAgo}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              {currentUser && post.author?.id && currentUser.id !== post.author.id && (
-                                <FollowButton
-                                  userIdToFollow={post.author.id}
-                                  initialIsFollowing={isFollowingAuthor}
-                                  currentUserId={currentUser.id}
-                                  onUpdate={handleFollowUpdate}
-                                />
-                              )}
-                              <IconButton size="small" onClick={(e) => handleMenuOpen(e, post.post_id)} sx={{ ml: 1 }}>
-                                <MoreHorizIcon fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          </Box>
-
-                          {post.title && (
-                            <Typography variant="subtitle1" fontWeight="medium" sx={{ mb: 1 }}>
-                              {post.title}
-                            </Typography>
-                          )}
-
-                          <Typography variant="body1" sx={{ mb: 2, whiteSpace: "pre-wrap" }}>
-                            {post.content}
-                          </Typography>
-
-                          <Box sx={{ display: "flex", justifyContent: "space-between", maxWidth: 800 }}>
-                          <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <IconButton size="small" sx={{ mr: 0.5 }}>
-                                <FavoriteBorderIcon fontSize="small" />
-                              </IconButton>
-                              <Typography variant="body2" color="text.secondary">
-                                28
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <IconButton size="small" sx={{ mr: 0.5 }}>
-                                <ChatBubbleOutlineIcon fontSize="small" />
-                              </IconButton>
-                              <Typography variant="body2" color="text.secondary">
-                                5
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <Typography variant="body2" color="text.secondary">
-                                2.4K views
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </Box>
-                      </Box>
-                      
-                      {/* Post Menu - Updated for delete/hide options */}
-                      <Menu
-                        anchorEl={menuAnchorEl}
-                        open={Boolean(menuAnchorEl) && activePostId === post.post_id}
-                        onClose={handleMenuClose}
-                        PaperProps={{
-                          elevation: 3,
-                          sx: { width: 200, borderRadius: 2 },
-                        }}
-                      >
-                        {isOwnPost ? (
-                          <MenuItem 
-                            onClick={() => activePostId !== null && handleDeletePost(activePostId)}
-                            disabled={deleteLoading}
-                          >
-                            <ListItemIcon>
-                              {deleteLoading ? <CircularProgress size={20} /> : <DeleteIcon fontSize="small" />}
-                            </ListItemIcon>
-                            <ListItemText>{deleteLoading ? "Deleting..." : "Delete this post"}</ListItemText>
-                          </MenuItem>
-                        ) : (
-                          <MenuItem onClick={() => activePostId !== null && hidePost(activePostId)}>
-                            <ListItemIcon>
-                              <CloseIcon fontSize="small" />
-                            </ListItemIcon>
-                            <ListItemText>Hide this post</ListItemText>
-                          </MenuItem>
-                        )}
-                      </Menu>
-                    </Box>
-                  )
-                })}
+                {visiblePosts.map((post) => (
+                  <PostCard
+                    key={post.post_id}
+                    post={{
+                      postId: post.post_id,
+                      title: post.title,
+                      content: post.content,
+                      createdAt: post.created_at,
+                      commentsCount: post.commentsCount || 0,
+                      likesCount: post.likesCount || 0,  // Pass from backend
+                      isLiked: post.isLiked || false,    // Pass from backend
+                      author: {
+                        accountId: post.author?.id || '',
+                        firstName: post.author?.first_name || 'Unknown',
+                        lastName: post.author?.last_name || 'User',
+                        isFollowing: followingStatus.get(post.author?.id || '') || false
+                      }
+                    }}
+                    currentUserId={currentUser?.id || null}
+                    onPostDeleted={fetchPosts}
+                    onPostUpdated={fetchPosts}
+                    onFollowUpdate={handleFollowUpdate}
+                    onLikeUpdate={(postId, isLiked, likeCount) => {
+                      // Handle like updates if needed
+                      fetchPosts();
+                    }}
+                  />
+                ))}
               </Box>
             )}
           </Paper>
