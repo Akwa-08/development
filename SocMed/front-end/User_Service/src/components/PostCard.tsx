@@ -36,6 +36,7 @@ import FollowButton from './FollowButton';
 import LikeButton from './LikeButton';
 import CommentsSection from './CommentsSection';
 import EditPostForm from './EditPostForm';
+import UserAvatar from './UserAvatar';
 
 interface PostCardProps {
   post: {
@@ -81,20 +82,33 @@ const PostCard: React.FC<PostCardProps> = ({
     event.stopPropagation();
   };
   
-  const handleMenuClose = (event?: React.MouseEvent) => {
+  const handleMenuClose = (
+  event: React.MouseEvent<HTMLElement> | {}, 
+    reason?: "backdropClick" | "escapeKeyDown"
+  ) => {
+    if (event && 'stopPropagation' in event) {
+      event.stopPropagation();
+    }
     setMenuAnchorEl(null);
-    event?.stopPropagation();
   };
   
-  const handleEditClick = (event?: React.MouseEvent) => {
+  const handleEditClick = (event?: React.MouseEvent<HTMLElement>) => {
+  if (event) {
     handleMenuClose(event);
-    setIsEditDialogOpen(true);
-  };
-  
-  const handleDeleteClick = (event?: React.MouseEvent) => {
+  } else {
+    handleMenuClose({});
+  }
+  setIsEditDialogOpen(true);
+};
+
+const handleDeleteClick = (event?: React.MouseEvent<HTMLElement>) => {
+  if (event) {
     handleMenuClose(event);
-    setIsDeleteDialogOpen(true);
-  };
+  } else {
+    handleMenuClose({});
+  }
+  setIsDeleteDialogOpen(true);
+};
   
   const handleDeleteConfirm = () => {
     if (onPostDeleted) onPostDeleted();
@@ -147,22 +161,21 @@ const PostCard: React.FC<PostCardProps> = ({
     >
       <CardHeader
         avatar={
-          <Avatar
+          <UserAvatar
+            userId={post.author.accountId}
+            firstName={post.author.firstName}
+            lastName={post.author.lastName}
+            profilePictureUrl={post.author.isFollowing !== undefined ? undefined : undefined}
+            size={48}
             sx={{ 
-              width: 48, 
-              height: 48,
               cursor: 'pointer',
-               bgcolor: post.author.accountId ? `#${parseInt(post.author.accountId.substring(0, 8), 16) % 0xFFFFFF}` : theme.palette.primary.main,
               boxShadow: '0 2px 8px rgba(129, 93, 171, 0.2)',
               '&:hover': {
                 transform: 'scale(1.05)'
               }
             }}
             onClick={handleNavigateToProfile}
-          >
-            {post.author.firstName[0]?.toUpperCase() ?? '?'}
-            {post.author.lastName[0]?.toUpperCase() ?? ''}
-          </Avatar>
+          />
         }
         action={
           <Box sx={{ display: 'flex', alignItems: 'center' }}>

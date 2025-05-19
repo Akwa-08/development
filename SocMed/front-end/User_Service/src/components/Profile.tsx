@@ -194,21 +194,19 @@ export const Profile: React.FC = () => {
 
   // Handle profile picture update success
   const handleProfilePictureUpdate = (url: string) => {
-    if (profile) {
-      setProfile({
-        ...profile,
-        profile_picture_url: url
-      });
-    }
-    
-    setNotification({
-      open: true,
-      message: 'Profile picture updated successfully',
-      severity: 'success',
+  if (profile) {
+    setProfile({
+      ...profile,
+      profile_picture_url: url
     });
-
-    localStorage.setItem('profile_picture_updated', Date.now().toString());
-  };
+  }
+  
+  setNotification({
+    open: true,
+    message: 'Profile picture updated successfully',
+    severity: 'success',
+  });
+};
 
   // Generate a banner color based on user ID for consistency
   const generateColorFromId = (id: string) => {

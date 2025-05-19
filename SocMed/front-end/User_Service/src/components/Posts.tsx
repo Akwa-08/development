@@ -41,6 +41,7 @@ import EditPostForm from './EditPostForm';
 import { CREATE_COMMENT } from "../graphql/mutations";
 import PostComments from './PostComments';
 import CreatePostModal from './CreatePostModal'; 
+import UserAvatar from './UserAvatar';
 
 // Interfaces
 interface Post {
@@ -64,6 +65,7 @@ interface Account {
   first_name: string;
   last_name: string;
   email: string;
+  profile_picture_url?: string;
 }
 
 interface Comment {
@@ -600,17 +602,16 @@ useEffect(() => {
           {currentUser ? (
             <>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <Avatar 
-                  src={currentUser.profile_picture_url || undefined}
+                <UserAvatar 
+                  userId={currentUser.id}
+                  firstName={currentUser.first_name}
+                  lastName={currentUser.last_name}
+                  profilePictureUrl={currentUser.profile_picture_url}
+                  size={48}
                   sx={{ 
-                    width: 48, 
-                    height: 48,
-                    bgcolor: '#815DAB',
                     mr: 2
                   }}
-                >
-                  {currentUser.first_name[0]}{currentUser.last_name[0]}
-                </Avatar>
+                />
                 <Box>
                   <Typography variant="subtitle1" fontWeight="bold">
                     {currentUser.first_name} {currentUser.last_name}
@@ -712,23 +713,21 @@ useEffect(() => {
                 }}
               >
                 {/* Avatar */}
-                <Avatar 
-                  src={post.author?.profile_picture_url || undefined}
+                <UserAvatar 
+                  userId={post.author?.id || ''}
+                  firstName={post.author?.first_name}
+                  lastName={post.author?.last_name}
+                  profilePictureUrl={post.author?.profile_picture_url}
+                  size={48}
                   sx={{ 
-                    width: 48, 
-                    height: 48,
                     mr: 2,
-                    bgcolor: post.author?.id ? `#${parseInt(post.author.id.substring(0, 8), 16) % 0xFFFFFF}` : '#815DAB',
                     cursor: 'pointer'
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/profile/${post.author?.id}`);
                   }}
-                >
-                  {post.author?.first_name?.[0] || ''}
-                  {post.author?.last_name?.[0] || ''}
-                </Avatar>
+                />
                 
                 {/* Content */}
                 <Box sx={{ width: '100%' }}>
@@ -872,16 +871,16 @@ useEffect(() => {
                   {/* Add comment form */}
                   {currentUser && (
                     <Box sx={{ display: 'flex', mb: 3, alignItems: 'flex-start' }}>
-                      <Avatar 
+                      <UserAvatar 
+                        userId={currentUser.id}
+                        firstName={currentUser.first_name}
+                        lastName={currentUser.last_name}
+                        profilePictureUrl={currentUser?.profile_picture_url}
+                        size={32}
                         sx={{ 
-                          width: 32, 
-                          height: 32,
-                          mr: 1.5,
-                          bgcolor: theme.palette.primary.main
+                          mr: 1.5
                         }}
-                      >
-                        {currentUser.first_name[0]}{currentUser.last_name[0]}
-                      </Avatar>
+                      />
                       <Box sx={{ flexGrow: 1 }}>
                         <TextField
                           fullWidth

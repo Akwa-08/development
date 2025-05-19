@@ -1,4 +1,4 @@
-// src/components/Navigation.tsx - Simplified version
+// src/components/Navigation.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
@@ -8,7 +8,6 @@ import {
   Typography,
   IconButton,
   Box,
-  Avatar,
   Badge,
   Menu,
   MenuItem,
@@ -25,6 +24,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { GET_MY_NOTIFICATIONS } from '../graphql/queries';
 import CreatePostModal from './CreatePostModal';
+import UserAvatar from './UserAvatar'; // Import the new UserAvatar component
 
 export default function Navigation() {
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export default function Navigation() {
   // Calculate unread count
   const unreadCount = notificationData?.getMyNotifications?.length || 0;
 
-  // Simplified user and profile fetch
+  // Fetch user and profile
   useEffect(() => {
     const fetchUserAndProfile = async () => {
       const { data } = await supabase.auth.getUser();
@@ -96,7 +96,7 @@ export default function Navigation() {
     return () => {
       authListener?.subscription.unsubscribe();
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, []);
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setProfileAnchorEl(event.currentTarget);
@@ -195,17 +195,19 @@ export default function Navigation() {
                 color="inherit"
                 sx={{ ml: 1 }}
               >
-                <Avatar 
-                  src={userProfile?.profile_picture_url || undefined}
-                  sx={{ 
-                    width: 32, 
-                    height: 32, 
-                    bgcolor: '#815DAB',
-                    border: '2px solid #f0f0f0'
-                  }}
-                >
-                  {userProfile?.first_name ? userProfile.first_name[0].toUpperCase() : (user.email ? user.email[0].toUpperCase() : '?')}
-                </Avatar>
+                {/* Replace Avatar with UserAvatar */}
+                {userProfile && (
+                  <UserAvatar 
+                    userId={userProfile.id}
+                    firstName={userProfile.first_name}
+                    lastName={userProfile.last_name}
+                    profilePictureUrl={userProfile.profile_picture_url}
+                    size={32}
+                    sx={{ 
+                      border: '2px solid #f0f0f0'
+                    }}
+                  />
+                )}
               </IconButton>
             ) : (
               <IconButton 

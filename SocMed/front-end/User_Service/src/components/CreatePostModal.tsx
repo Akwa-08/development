@@ -1,3 +1,4 @@
+// src/components/CreatePostModal.tsx
 import { useState } from 'react';
 import {
   Dialog,
@@ -15,6 +16,7 @@ import {
 } from '@mui/material';
 import { PhotoCamera, Close as CloseIcon } from '@mui/icons-material';
 import { supabase } from '../lib/supabase';
+import UserAvatar from './UserAvatar'; 
 
 interface CreatePostModalProps {
   open: boolean;
@@ -26,7 +28,6 @@ interface CreatePostModalProps {
     last_name?: string;
     profile_picture_url?: string;
     email?: string;
-    
   } | null;
 }
 
@@ -42,8 +43,13 @@ export default function CreatePostModal({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-   const userName = currentUser?.first_name || 'User';
-  const userInitials = currentUser ? `${currentUser.first_name[0]}${currentUser.last_name[0]}` : '';
+  
+  // Fix: Safely access first_name and last_name properties with optional chaining
+  const userName = currentUser?.first_name || 'User';
+  // Fix: Safely access first character with optional chaining and provide fallbacks
+  const userInitials = currentUser 
+    ? `${currentUser.first_name?.[0] || ''}${currentUser.last_name?.[0] || ''}`
+    : '';
 
   // Handle image selection
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,18 +204,18 @@ export default function CreatePostModal({
         )}
         
        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-        <Avatar 
-            src={currentUser?.profile_picture_url || undefined}
+        {currentUser && (
+            <UserAvatar 
+            userId={currentUser.id}
+            firstName={currentUser.first_name}
+            lastName={currentUser.last_name}
+            profilePictureUrl={currentUser.profile_picture_url}
+            size={40}
             sx={{ 
-            width: 40, 
-            height: 40,
-            mr: 2,
-            bgcolor: currentUser?.id ? `#${parseInt(currentUser.id.substring(0, 8), 16) % 0xFFFFFF}` : 'primary.main'
+                mr: 2
             }}
-        >
-            {currentUser?.first_name?.[0] || ''}
-            {currentUser?.last_name?.[0] || ''}
-        </Avatar>
+            />
+        )}
         
         <Typography variant="subtitle1" fontWeight="medium">
             {currentUser?.first_name || ''} {currentUser?.last_name || ''}

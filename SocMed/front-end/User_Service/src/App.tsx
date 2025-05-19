@@ -1,4 +1,4 @@
-// src/App.tsx
+// src/App.tsx - Updated with ProfileProvider
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ApolloProvider } from '@apollo/client';
 import { CssBaseline, ThemeProvider, createTheme, Box } from '@mui/material';
@@ -9,8 +9,9 @@ import Posts from './components/Posts';
 import Navigation from './components/Navigation';
 import NotificationsPage from './components/NotificationsPage';
 import { client } from './lib/apollo';
+import { ProfileProvider } from './ProfileContext'; // Import the ProfileProvider
 
-// Create a custom theme with enhanced styling
+// Theme configuration as before...
 const theme = createTheme({
   palette: {
     primary: { 
@@ -103,19 +104,21 @@ function App() {
     <ApolloProvider client={client}>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <Router>
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <Navigation />
-            <Routes>
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/signup" element={<SignupForm />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/posts" element={<Posts />} />
-              <Route path="/notifications" element={<NotificationsPage />} />
-              <Route path="/" element={<Navigate to="/posts" replace />} />
-            </Routes>
-          </Box>
-        </Router>
+        <ProfileProvider>
+          <Router>
+            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+              <Navigation />
+              <Routes>
+                <Route path="/login" element={<LoginForm />} />
+                <Route path="/signup" element={<SignupForm />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/posts" element={<Posts />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/" element={<Navigate to="/posts" replace />} />
+              </Routes>
+            </Box>
+          </Router>
+        </ProfileProvider>
       </ThemeProvider>
     </ApolloProvider>
   );

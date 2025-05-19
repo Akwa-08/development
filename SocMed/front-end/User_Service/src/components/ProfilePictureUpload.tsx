@@ -1,4 +1,4 @@
-// src/components/ProfilePictureUpload.tsx - Simplified
+// src/components/ProfilePictureUpload.tsx
 import React, { useState } from 'react';
 import { 
   Box, 
@@ -18,6 +18,37 @@ import {
   PhotoCamera 
 } from '@mui/icons-material';
 import { supabase } from '../lib/supabase';
+
+// Custom event name for profile picture updates
+export const PROFILE_PICTURE_UPDATED_EVENT = 'profile_picture_updated';
+
+// Custom event interface
+export interface ProfilePictureUpdatedEvent {
+  userId: string;
+  pictureUrl: string;
+  timestamp: number;
+}
+
+// Function to dispatch profile picture update event
+export const dispatchProfilePictureUpdated = (userId: string, pictureUrl: string) => {
+  const eventData: ProfilePictureUpdatedEvent = {
+    userId,
+    pictureUrl,
+    timestamp: Date.now()
+  };
+  
+  // Store in localStorage for cross-tab communication
+  localStorage.setItem(PROFILE_PICTURE_UPDATED_EVENT, JSON.stringify(eventData));
+  
+  // Dispatch custom event for same-tab communication
+  window.dispatchEvent(
+    new CustomEvent<ProfilePictureUpdatedEvent>(PROFILE_PICTURE_UPDATED_EVENT, { 
+      detail: eventData 
+    })
+  );
+  
+  console.log(`Profile picture updated for user ${userId}:`, pictureUrl);
+};
 
 interface ProfilePictureUploadProps {
   userId: string;
@@ -76,17 +107,21 @@ export default function ProfilePictureUpload({
     try {
       // Generate a unique filename using timestamp
       const fileExt = selectedFile.name.split('.').pop();
-    // Simpler path without user ID in folder structure
-    const fileName = `avatar-${userId}-${Date.now()}.${fileExt}`;
+      // Simpler path without user ID in folder structure
+      const fileName = `avatar-${userId}-${Date.now()}.${fileExt}`;
     
-    // Upload to Supabase storage - note we're not using a subfolder now
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(fileName, selectedFile, {
-        cacheControl: '3600',
-        upsert: true
-      });
-      
+      // Upload to Supabase storage - note we're not using a subfolder now
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, selectedFile, {
+          cacheControl: '3600',
+          upsert: true
+        });
+        
+      if (uploadError) {
+        throw uploadError;
+      }
+        
       // Get the public URL
       const { data: urlData } = supabase.storage
         .from('avatars')
@@ -103,6 +138,9 @@ export default function ProfilePictureUpload({
       if (updateError) {
         throw updateError;
       }
+      
+      // Dispatch custom event for profile picture update
+      dispatchProfilePictureUpdated(userId, publicUrl);
       
       // Call the success callback
       if (onUploadSuccess) {
