@@ -39,6 +39,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import EditPostForm from './EditPostForm';
 import { CREATE_COMMENT } from "../graphql/mutations";
+import PostComments from './PostComments';
 
 // Interfaces
 interface Post {
@@ -497,83 +498,13 @@ const fetchPosts = useCallback(async () => {
     );
   }
   
-  // Comments data rendering function
-  const renderComments = (postId: string) => {
-    // Use Apollo useQuery to fetch comments for this post
-    const { data, loading, error } = useQuery(GET_POST_COMMENTS, {
-      variables: { postId, limit: 20 },
-      skip: !showComments.has(postId)
-    });
-    
-    if (loading) {
-      return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-          <CircularProgress size={24} />
-        </Box>
-      );
-    }
-    
-    if (error) {
-      return (
-        <Box sx={{ py: 2 }}>
-          <Typography variant="body2" color="error" align="center">
-            Error loading comments
-          </Typography>
-        </Box>
-      );
-    }
-    
-    const comments = data?.getPostComments || [];
-    
-    return (
-      <Box>
-        {comments.length === 0 ? (
-          <Typography variant="body2" color="text.secondary" align="center">
-            No comments yet. Be the first to comment!
-          </Typography>
-        ) : (
-          comments.map((comment: Comment) => (
-            <Box 
-              key={comment.commentId}
-              sx={{ 
-                display: 'flex', 
-                mb: 2,
-                alignItems: 'flex-start'
-              }}
-            >
-              <Avatar 
-                sx={{ 
-                  width: 32, 
-                  height: 32,
-                  mr: 1.5,
-                  bgcolor: theme.palette.primary.main
-                }}
-              >
-                {comment.author.firstName[0]}{comment.author.lastName[0]}
-              </Avatar>
-              <Box>
-                <Box sx={{ 
-                  bgcolor: 'rgba(0,0,0,0.04)', 
-                  borderRadius: 2,
-                  p: 1.5
-                }}>
-                  <Typography variant="subtitle2" fontWeight="bold">
-                    {comment.author.firstName} {comment.author.lastName}
-                  </Typography>
-                  <Typography variant="body2">
-                    {comment.content}
-                  </Typography>
-                </Box>
-                <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                  {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                </Typography>
-              </Box>
-            </Box>
-          ))
-        )}
-      </Box>
-    );
-  };
+ const renderComments = (postId: string) => {
+  if (!showComments.has(postId)) {
+    return null;
+  }
+  
+  return <PostComments postId={postId} />;
+};
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', pt: '64px' }}>

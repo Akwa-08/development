@@ -101,6 +101,7 @@ const PostCard: React.FC<PostCardProps> = ({
   };
   
   const handleCommentsToggle = (event: React.MouseEvent) => {
+    event.preventDefault();
     event.stopPropagation();
     setShowComments(prev => !prev);
   };
@@ -296,8 +297,14 @@ const PostCard: React.FC<PostCardProps> = ({
       
       {/* Comments Section */}
       {showComments && (
-        <Box sx={{ px: 2, pb: 2 }}>
-          <CommentsSection 
+        <Box 
+          sx={{ px: 2, pb: 2 }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }} // Add this handler
+        >
+                <CommentsSection 
             postId={post.postId}
             currentUserId={currentUserId}
           />
