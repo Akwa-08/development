@@ -7,18 +7,56 @@ import {
   Avatar,
   Button,
   Grid,
-  AppBar,
-  Toolbar,
-  IconButton,
+  CircularProgress,
   Divider,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
 } from '@mui/material';
-import HomeIcon from '@mui/icons-material/Home';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import PersonIcon from '@mui/icons-material/Person';
-import LogoutIcon from '@mui/icons-material/Logout';
 import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useMutation } from '@apollo/client';
+import { gql } from '@apollo/client';
+
+// Define the GraphQL mutation
+const UPDATE_PROFILE = gql`
+  mutation UpdateProfile(
+    $username: String
+    $firstName: String
+    $lastName: String
+    $middleName: String
+    $bio: String
+    $dateOfBirth: String
+    $address: String
+    $phone: String
+  ) {
+    updateProfile(
+      username: $username
+      firstName: $firstName
+      lastName: $lastName
+      middleName: $middleName
+      bio: $bio
+      dateOfBirth: $dateOfBirth
+      address: $address
+      phone: $phone
+    ) {
+      accountId
+      username
+      firstName
+      lastName
+      middleName
+      bio
+      dateOfBirth
+      address
+      phone
+    }
+  }
+`;
 
 // Interface for user profile data
 interface UserProfile {
@@ -27,9 +65,25 @@ interface UserProfile {
   last_name: string;
   middle_name?: string;
   email: string;
-  birthday?: string;
   username?: string;
   bio?: string;
+  date_of_birth?: string;
+  profile_picture_url?: string;
+  banner_picture_url?: string;
+  address?: string;
+  phone?: string;
+}
+
+// Interface for edit profile form
+interface EditProfileForm {
+  username: string;
+  firstName: string;
+  lastName: string;
+  middleName: string;
+  bio: string;
+  dateOfBirth: string;
+  address: string;
+  phone: string;
 }
 
 export const Profile: React.FC = () => {
@@ -37,6 +91,60 @@ export const Profile: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState<EditProfileForm>({
+    username: '',
+    firstName: '',
+    lastName: '',
+    middleName: '',
+    bio: '',
+    dateOfBirth: '',
+    address: '',
+    phone: '',
+  });
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
+
+  // Apollo mutation hook
+  const [updateProfile, { loading: updateLoading }] = useMutation(UPDATE_PROFILE, {
+    onCompleted: (data) => {
+      // Update local profile data with the response
+      if (profile) {
+        setProfile({
+          ...profile,
+          username: data.updateProfile.username || profile.username,
+          first_name: data.updateProfile.firstName,
+          last_name: data.updateProfile.lastName,
+          middle_name: data.updateProfile.middleName || profile.middle_name,
+          bio: data.updateProfile.bio || profile.bio,
+          date_of_birth: data.updateProfile.dateOfBirth || profile.date_of_birth,
+          address: data.updateProfile.address || profile.address,
+          phone: data.updateProfile.phone || profile.phone,
+        });
+      }
+      setIsEditDialogOpen(false);
+      setNotification({
+        open: true,
+        message: 'Profile updated successfully',
+        severity: 'success',
+      });
+    },
+    onError: (error) => {
+      console.error('Error updating profile:', error);
+      setNotification({
+        open: true,
+        message: `Error updating profile: ${error.message}`,
+        severity: 'error',
+      });
+    },
+  });
 
   // Fetch user profile data
   useEffect(() => {
@@ -58,6 +166,18 @@ export const Profile: React.FC = () => {
           
         if (error) throw error;
         setProfile(data);
+        
+        // Initialize edit form with current values
+        setEditForm({
+          username: data.username || '',
+          firstName: data.first_name || '',
+          lastName: data.last_name || '',
+          middleName: data.middle_name || '',
+          bio: data.bio || '',
+          dateOfBirth: data.date_of_birth || '',
+          address: data.address || '',
+          phone: data.phone || '',
+        });
       } catch (err: any) {
         console.error('Error fetching profile:', err);
         setError(err.message);
@@ -69,44 +189,105 @@ export const Profile: React.FC = () => {
     fetchProfile();
   }, [navigate]);
 
+  const handleEditProfile = () => {
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+  
+  const handleSubmitEdit = () => {
+    // Update profile using GraphQL mutation
+    updateProfile({
+      variables: {
+        username: editForm.username || undefined,
+        firstName: editForm.firstName || undefined,
+        lastName: editForm.lastName || undefined,
+        middleName: editForm.middleName || undefined,
+        bio: editForm.bio || undefined,
+        dateOfBirth: editForm.dateOfBirth || undefined,
+        address: editForm.address || undefined,
+        phone: editForm.phone || undefined,
+      },
+    });
+  };
+  
+  const handleCloseNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/login');
   };
 
-  const handleEditProfile = () => {
-    // Navigate to edit profile page or open modal
-    navigate('/edit-profile');
+  // Generate a banner color based on user ID for consistency
+  const generateColorFromId = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const c = (hash & 0x00FFFFFF)
+      .toString(16)
+      .toUpperCase()
+      .padStart(6, '0');
+    return `#${c}`;
   };
 
-  // Default banner image (cats from the design)
-  const bannerImage = "https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1374&q=80";
+  // Default banner with gradient based on user ID
+  const getBannerStyle = (id: string) => {
+    const baseColor = generateColorFromId(id);
+    return {
+      background: `linear-gradient(135deg, ${baseColor} 0%, #37474F 100%)`,
+      height: '200px',
+    };
+  };
+
+  // Get initials for avatar
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`;
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4, mt: 8 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4, mt: 8 }}>
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
 
   return (
-    <Box sx={{ bgcolor: '#f5f5f5', minHeight: '100vh' }}>
+    <Box sx={{ bgcolor: '#f5f5f5', minHeight: '100vh', pt: 8 }}>
       <Container maxWidth="md" sx={{ mt: 2, mb: 4 }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <Typography>Loading profile...</Typography>
-          </Box>
-        ) : error ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <Typography color="error">{error}</Typography>
-          </Box>
-        ) : profile ? (
+        {profile ? (
           <Paper elevation={0} sx={{ borderRadius: 2, overflow: 'hidden' }}>
             {/* Banner Image */}
-            <Box sx={{ position: 'relative', height: 200 }}>
-              <Box
-                component="img"
-                src={bannerImage}
-                alt="Profile Banner"
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
+            <Box sx={{ position: 'relative', ...getBannerStyle(profile.id) }}>
+              {profile.banner_picture_url && (
+                <Box
+                  component="img"
+                  src={profile.banner_picture_url}
+                  alt="Profile Banner"
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
+                  }}
+                />
+              )}
               
               {/* Profile Avatar - positioned to overlap the banner */}
               <Avatar
@@ -117,10 +298,30 @@ export const Profile: React.FC = () => {
                   position: 'absolute',
                   bottom: -60,
                   left: 24,
+                  fontSize: '2.5rem',
+                  fontWeight: 'bold',
+                  bgcolor: profile.id ? generateColorFromId(profile.id) : 'primary.main',
                 }}
                 alt={`${profile.first_name} ${profile.last_name}`}
-                src="/path-to-profile-image.jpg" // Replace with actual profile image path
-              />
+                src={profile.profile_picture_url || ""}
+              >
+                {getInitials(profile.first_name, profile.last_name)}
+              </Avatar>
+              
+              {/* Edit Profile Button */}
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={handleEditProfile}
+                sx={{
+                  position: 'absolute',
+                  right: 16,
+                  bottom: 16,
+                  borderRadius: 5,
+                }}
+              >
+                Edit Profile
+              </Button>
             </Box>
             
             {/* Profile Info Section */}
@@ -130,11 +331,11 @@ export const Profile: React.FC = () => {
               </Typography>
               
               <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
-                @{profile.username || 'ecstasyrah'} {/* Fallback to example from design */}
+                @{profile.username || profile.first_name.toLowerCase() + profile.last_name.toLowerCase()}
               </Typography>
               
               <Typography variant="body1" sx={{ mb: 2 }}>
-                {profile.bio || 'Que Sera Sera. QUE SERA SERA??!!!'} {/* Fallback to example from design */}
+                {profile.bio || 'No bio available'}
               </Typography>
               
               {/* Personal Information Section */}
@@ -143,13 +344,6 @@ export const Profile: React.FC = () => {
                   <Typography variant="h6" fontWeight="bold">
                     Personal Information
                   </Typography>
-                  <Button 
-                    startIcon={<EditIcon />} 
-                    onClick={handleEditProfile}
-                    sx={{ color: '#333' }}
-                  >
-                    Edit Profile
-                  </Button>
                 </Box>
                 
                 <Divider sx={{ mb: 2 }} />
@@ -169,7 +363,7 @@ export const Profile: React.FC = () => {
                       Birthday
                     </Typography>
                     <Typography variant="body1" sx={{ mb: 2 }}>
-                      {profile.birthday || '07-30-2004'} {/* Fallback to example from design */}
+                      {profile.date_of_birth || 'Not specified'}
                     </Typography>
                   </Grid>
                   
@@ -178,7 +372,7 @@ export const Profile: React.FC = () => {
                       Middle Name
                     </Typography>
                     <Typography variant="body1" sx={{ mb: 2 }}>
-                      {profile.middle_name || 'Ordoñez'} {/* Fallback to example from design */}
+                      {profile.middle_name || 'Not specified'}
                     </Typography>
                   </Grid>
                   
@@ -199,7 +393,36 @@ export const Profile: React.FC = () => {
                       {profile.last_name}
                     </Typography>
                   </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      Phone
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {profile.phone || 'Not specified'}
+                    </Typography>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" color="text.secondary">
+                      Address
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      {profile.address || 'Not specified'}
+                    </Typography>
+                  </Grid>
                 </Grid>
+                
+                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={handleLogout}
+                    sx={{ borderRadius: 5 }}
+                  >
+                    Logout
+                  </Button>
+                </Box>
               </Paper>
             </Box>
           </Paper>
@@ -209,6 +432,139 @@ export const Profile: React.FC = () => {
           </Box>
         )}
       </Container>
+      
+      {/* Edit Profile Dialog */}
+      <Dialog 
+        open={isEditDialogOpen} 
+        onClose={() => !updateLoading && setIsEditDialogOpen(false)}
+        fullWidth
+        maxWidth="sm"
+      >
+        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogContent>
+          <Box component="form" sx={{ mt: 1 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Username"
+                  name="username"
+                  value={editForm.username}
+                  onChange={handleFormChange}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="First Name"
+                  name="firstName"
+                  value={editForm.firstName}
+                  onChange={handleFormChange}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Last Name"
+                  name="lastName"
+                  value={editForm.lastName}
+                  onChange={handleFormChange}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Middle Name"
+                  name="middleName"
+                  value={editForm.middleName}
+                  onChange={handleFormChange}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Bio"
+                  name="bio"
+                  multiline
+                  rows={3}
+                  value={editForm.bio}
+                  onChange={handleFormChange}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Date of Birth"
+                  name="dateOfBirth"
+                  placeholder="YYYY-MM-DD"
+                  value={editForm.dateOfBirth}
+                  onChange={handleFormChange}
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Phone"
+                  name="phone"
+                  value={editForm.phone}
+                  onChange={handleFormChange}
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Address"
+                  name="address"
+                  value={editForm.address}
+                  onChange={handleFormChange}
+                />
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsEditDialogOpen(false)} disabled={updateLoading}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmitEdit} 
+            variant="contained" 
+            disabled={updateLoading}
+          >
+            {updateLoading ? "Saving..." : "Save Changes"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={6000}
+        onClose={handleCloseNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={handleCloseNotification} 
+          severity={notification.severity}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
