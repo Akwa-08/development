@@ -40,6 +40,7 @@ import { formatDistanceToNow } from 'date-fns';
 import EditPostForm from './EditPostForm';
 import { CREATE_COMMENT } from "../graphql/mutations";
 import PostComments from './PostComments';
+import CreatePostModal from './CreatePostModal'; 
 
 // Interfaces
 interface Post {
@@ -54,6 +55,7 @@ interface Post {
     id: string;
     first_name: string;
     last_name: string;
+    profile_picture_url?: string;
   } | null;
 }
 
@@ -87,7 +89,17 @@ export default function Posts() {
   const [currentUserLoading, setCurrentUserLoading] = useState(true);
   const [followingStatus, setFollowingStatus] = useState<Map<string, boolean>>(new Map());
   const [notification, setNotification] = useState<{ id: string; type: string; message: string } | null>(null);
-  
+  const [createPostModalOpen, setCreatePostModalOpen] = useState(false);
+  const handleOpenCreatePost = () => {
+  console.log("Opening create post modal");
+  setCreatePostModalOpen(true);
+};
+
+const handlePostCreated = () => {
+  setCreatePostModalOpen(false);
+  // Refresh posts
+  fetchPosts();
+};
   // Menu state
   const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
   const [activePostId, setActivePostId] = useState<string | null>(null);
@@ -209,7 +221,8 @@ const fetchPosts = useCallback(async () => {
         author:accounts!posts_author_id_fkey(
           id,
           first_name,
-          last_name
+          last_name,
+          profile_picture_url 
         )
       `)
       .order("created_at", { ascending: false });
@@ -226,7 +239,7 @@ const fetchPosts = useCallback(async () => {
         title: post.title,
         content: post.content,
         created_at: post.created_at,
-        author: authorData, // Use the properly extracted author
+        author: authorData, 
         commentsCount: 0,
         likesCount: 0,
         isLiked: false
@@ -234,13 +247,6 @@ const fetchPosts = useCallback(async () => {
     });
     
     setPosts(postsWithCounts);
-    
-    // For demo, initialize like status for each post
-    const newLikeStatus: { [postId: string]: boolean } = {};
-    postsWithCounts.forEach(post => {
-      newLikeStatus[post.post_id] = false;
-    });
-    setLikeStatus(newLikeStatus);
     
   } catch (err: any) {
     console.error("Error fetching posts:", err);
@@ -309,6 +315,68 @@ const fetchPosts = useCallback(async () => {
       supabase.removeChannel(postSubscription);
     };
   }, [fetchCurrentUser, fetchPosts]);
+
+  useEffect(() => {
+  // Existing code for fetching posts
+  fetchPosts();
+
+  // Add a real-time subscription for account updates (profile pictures)
+  const profileChangesChannel = supabase
+    .channel('profile-changes')
+    .on('postgres_changes', 
+      { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'accounts',
+        // We don't filter by specific users, as we want to catch all profile updates
+      },
+      (payload) => {
+        // Check if the profile_picture_url changed
+        if (payload.new && payload.old && 
+            payload.new.profile_picture_url !== payload.old.profile_picture_url) {
+          
+          // Update posts with this author
+          setPosts(prevPosts => prevPosts.map(post => {
+            if (post.author && post.author.id === payload.new.id) {
+              return {
+                ...post,
+                author: {
+                  ...post.author,
+                  profile_picture_url: payload.new.profile_picture_url
+                }
+              };
+            }
+            return post;
+          }));
+        }
+      }
+    )
+    .subscribe();
+
+  // Clean up subscription on unmount
+  return () => {
+    supabase.removeChannel(profileChangesChannel);
+  };
+}, [fetchPosts]);
+
+useEffect(() => {
+  // This function handles the storage event
+  const handleProfilePictureUpdate = () => {
+    // Refresh posts when profile picture is updated
+    fetchPosts();
+  };
+  
+  // Set up event listener for localStorage changes
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'profile_picture_updated') {
+      handleProfilePictureUpdate();
+    }
+  });
+  
+  return () => {
+    window.removeEventListener('storage', handleProfilePictureUpdate);
+  };
+}, [fetchPosts]);
 
   // Toggle follow
   const toggleFollow = async (authorId: string) => {
@@ -508,6 +576,13 @@ const fetchPosts = useCallback(async () => {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', pt: '64px' }}>
+      <CreatePostModal
+      open={createPostModalOpen}
+      onClose={() => setCreatePostModalOpen(false)}
+      onPostCreated={handlePostCreated}
+      currentUser={currentUser}
+    />
+    
       {/* Left Sidebar */}
       {!isMobile && (
         <Box 
@@ -526,6 +601,7 @@ const fetchPosts = useCallback(async () => {
             <>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Avatar 
+                  src={currentUser.profile_picture_url || undefined}
                   sx={{ 
                     width: 48, 
                     height: 48,
@@ -556,7 +632,7 @@ const fetchPosts = useCallback(async () => {
                   fontWeight: 'bold',
                   mb: 3
                 }}
-                onClick={() => navigate('/create-post')}
+                onClick={() => handleOpenCreatePost()}
               >
                 Post
               </Button>
@@ -637,11 +713,12 @@ const fetchPosts = useCallback(async () => {
               >
                 {/* Avatar */}
                 <Avatar 
+                  src={post.author?.profile_picture_url || undefined}
                   sx={{ 
                     width: 48, 
                     height: 48,
                     mr: 2,
-                    bgcolor: theme.palette.primary.main,
+                    bgcolor: post.author?.id ? `#${parseInt(post.author.id.substring(0, 8), 16) % 0xFFFFFF}` : '#815DAB',
                     cursor: 'pointer'
                   }}
                   onClick={(e) => {
@@ -928,6 +1005,8 @@ const fetchPosts = useCallback(async () => {
       )}
       
       {/* Notification */}
+
+      
 {notification && (
   <Snackbar
     open={notification !== null}
@@ -946,5 +1025,9 @@ const fetchPosts = useCallback(async () => {
 )}
       
     </Box>
+
+     
   );
+
 }
+

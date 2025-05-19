@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
+// src/components/Profile.tsx - Update with profile picture upload
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Container,
   Typography,
   Paper,
-  Avatar,
   Button,
   Grid,
   CircularProgress,
@@ -21,42 +21,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useMutation } from '@apollo/client';
-import { gql } from '@apollo/client';
-
-// Define the GraphQL mutation
-const UPDATE_PROFILE = gql`
-  mutation UpdateProfile(
-    $username: String
-    $firstName: String
-    $lastName: String
-    $middleName: String
-    $bio: String
-    $dateOfBirth: String
-    $address: String
-    $phone: String
-  ) {
-    updateProfile(
-      username: $username
-      firstName: $firstName
-      lastName: $lastName
-      middleName: $middleName
-      bio: $bio
-      dateOfBirth: $dateOfBirth
-      address: $address
-      phone: $phone
-    ) {
-      accountId
-      username
-      firstName
-      lastName
-      middleName
-      bio
-      dateOfBirth
-      address
-      phone
-    }
-  }
-`;
+import { UPDATE_PROFILE } from '../graphql/mutations';
+import ProfilePictureUpload from './ProfilePictureUpload'; // Add import
 
 // Interface for user profile data
 interface UserProfile {
@@ -147,47 +113,47 @@ export const Profile: React.FC = () => {
   });
 
   // Fetch user profile data
-  useEffect(() => {
-    const fetchProfile = async () => {
-      setLoading(true);
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          navigate('/login');
-          return;
-        }
-        
-        const { data, error } = await supabase
-          .from('accounts')
-          .select('*')
-          .eq('id', user.id)
-          .single();
-          
-        if (error) throw error;
-        setProfile(data);
-        
-        // Initialize edit form with current values
-        setEditForm({
-          username: data.username || '',
-          firstName: data.first_name || '',
-          lastName: data.last_name || '',
-          middleName: data.middle_name || '',
-          bio: data.bio || '',
-          dateOfBirth: data.date_of_birth || '',
-          address: data.address || '',
-          phone: data.phone || '',
-        });
-      } catch (err: any) {
-        console.error('Error fetching profile:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchProfile = useCallback(async () => {
+  setLoading(true);
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
     
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    
+    const { data, error } = await supabase
+      .from('accounts')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+      
+    if (error) throw error;
+    setProfile(data);
+    
+    // Initialize edit form with current values
+    setEditForm({
+      username: data.username || '',
+      firstName: data.first_name || '',
+      lastName: data.last_name || '',
+      middleName: data.middle_name || '',
+      bio: data.bio || '',
+      dateOfBirth: data.date_of_birth || '',
+      address: data.address || '',
+      phone: data.phone || '',
+    });
+  } catch (err: any) {
+    console.error('Error fetching profile:', err);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+}, [navigate]); // Only depend on navigate
+
+  useEffect(() => {
     fetchProfile();
-  }, [navigate]);
+  }, [fetchProfile]);
 
   const handleEditProfile = () => {
     setIsEditDialogOpen(true);
@@ -226,6 +192,24 @@ export const Profile: React.FC = () => {
     navigate('/login');
   };
 
+  // Handle profile picture update success
+  const handleProfilePictureUpdate = (url: string) => {
+    if (profile) {
+      setProfile({
+        ...profile,
+        profile_picture_url: url
+      });
+    }
+    
+    setNotification({
+      open: true,
+      message: 'Profile picture updated successfully',
+      severity: 'success',
+    });
+
+    localStorage.setItem('profile_picture_updated', Date.now().toString());
+  };
+
   // Generate a banner color based on user ID for consistency
   const generateColorFromId = (id: string) => {
     let hash = 0;
@@ -246,11 +230,6 @@ export const Profile: React.FC = () => {
       background: `linear-gradient(135deg, ${baseColor} 0%, #37474F 100%)`,
       height: '200px',
     };
-  };
-
-  // Get initials for avatar
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`;
   };
 
   if (loading) {
@@ -290,23 +269,14 @@ export const Profile: React.FC = () => {
               )}
               
               {/* Profile Avatar - positioned to overlap the banner */}
-              <Avatar
-                sx={{
-                  width: 120,
-                  height: 120,
-                  border: '4px solid white',
-                  position: 'absolute',
-                  bottom: -60,
-                  left: 24,
-                  fontSize: '2.5rem',
-                  fontWeight: 'bold',
-                  bgcolor: profile.id ? generateColorFromId(profile.id) : 'primary.main',
-                }}
-                alt={`${profile.first_name} ${profile.last_name}`}
-                src={profile.profile_picture_url || ""}
-              >
-                {getInitials(profile.first_name, profile.last_name)}
-              </Avatar>
+              <Box sx={{ position: 'absolute', bottom: -60, left: 24 }}>
+                <ProfilePictureUpload 
+                  userId={profile.id}
+                  currentProfilePicture={profile.profile_picture_url}
+                  size={120}
+                  onUploadSuccess={handleProfilePictureUpdate}
+                />
+              </Box>
               
               {/* Edit Profile Button */}
               <Button

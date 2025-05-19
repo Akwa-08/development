@@ -5,7 +5,6 @@ import { CssBaseline, ThemeProvider, createTheme, Box } from '@mui/material';
 import { LoginForm } from './components/LoginForm';
 import { SignupForm } from './components/SignupForm';
 import Profile from './components/Profile';
-import PostForm from './components/PostForm';
 import Posts from './components/Posts';
 import Navigation from './components/Navigation';
 import NotificationsPage from './components/NotificationsPage';
@@ -112,7 +111,6 @@ function App() {
               <Route path="/signup" element={<SignupForm />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/posts" element={<Posts />} />
-              <Route path="/create-post" element={<PostForm />} />
               <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/" element={<Navigate to="/posts" replace />} />
             </Routes>

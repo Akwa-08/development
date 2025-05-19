@@ -74,6 +74,7 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [createPostModalOpen, setCreatePostModalOpen] = useState(false);
   
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setMenuAnchorEl(event.currentTarget);
@@ -151,7 +152,7 @@ const PostCard: React.FC<PostCardProps> = ({
               width: 48, 
               height: 48,
               cursor: 'pointer',
-              bgcolor: theme.palette.primary.main,
+               bgcolor: post.author.accountId ? `#${parseInt(post.author.accountId.substring(0, 8), 16) % 0xFFFFFF}` : theme.palette.primary.main,
               boxShadow: '0 2px 8px rgba(129, 93, 171, 0.2)',
               '&:hover': {
                 transform: 'scale(1.05)'
