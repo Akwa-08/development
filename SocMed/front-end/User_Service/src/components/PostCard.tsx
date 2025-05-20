@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Paper, 
-  Avatar, 
   Typography, 
   IconButton, 
   Menu, 
@@ -37,6 +36,7 @@ import LikeButton from './LikeButton';
 import CommentsSection from './CommentsSection';
 import EditPostForm from './EditPostForm';
 import UserAvatar from './UserAvatar';
+import ReactMarkdown from 'react-markdown';
 
 interface PostCardProps {
   post: {
@@ -81,9 +81,16 @@ const PostCard: React.FC<PostCardProps> = ({
     setMenuAnchorEl(event.currentTarget);
     event.stopPropagation();
   };
+
+  const handleLikeUpdate = (postId: string, isLiked: boolean, likeCount: number) => {
+  // If provided, call the parent's onLikeUpdate
+  if (onLikeUpdate) {
+    onLikeUpdate(postId, isLiked, likeCount);
+  }
+};
   
   const handleMenuClose = (
-  event: React.MouseEvent<HTMLElement> | {}, 
+    event: React.MouseEvent<HTMLElement> | {}, 
     reason?: "backdropClick" | "escapeKeyDown"
   ) => {
     if (event && 'stopPropagation' in event) {
@@ -93,22 +100,22 @@ const PostCard: React.FC<PostCardProps> = ({
   };
   
   const handleEditClick = (event?: React.MouseEvent<HTMLElement>) => {
-  if (event) {
-    handleMenuClose(event);
-  } else {
-    handleMenuClose({});
-  }
-  setIsEditDialogOpen(true);
-};
+    if (event) {
+      handleMenuClose(event);
+    } else {
+      handleMenuClose({});
+    }
+    setIsEditDialogOpen(true);
+  };
 
-const handleDeleteClick = (event?: React.MouseEvent<HTMLElement>) => {
-  if (event) {
-    handleMenuClose(event);
-  } else {
-    handleMenuClose({});
-  }
-  setIsDeleteDialogOpen(true);
-};
+  const handleDeleteClick = (event?: React.MouseEvent<HTMLElement>) => {
+    if (event) {
+      handleMenuClose(event);
+    } else {
+      handleMenuClose({});
+    }
+    setIsDeleteDialogOpen(true);
+  };
   
   const handleDeleteConfirm = () => {
     if (onPostDeleted) onPostDeleted();
@@ -134,6 +141,45 @@ const handleDeleteClick = (event?: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation();
     navigate(`/profile/${post.author.accountId}`);
   };
+
+  // Function to properly render content with images
+  const renderPostContent = (content: string) => {
+    // Check if content contains markdown image
+    if (content.includes('![') && content.includes('](') && content.includes(')')) {
+      return (
+        <Box sx={{ 
+          '& img': { 
+            maxWidth: '100%', 
+            height: 'auto',
+            borderRadius: 1,
+            my: 1
+          },
+          mb: 2,
+          wordBreak: 'break-word',
+          color: theme.palette.text.secondary,
+          lineHeight: 1.6
+        }}>
+          <ReactMarkdown>{content}</ReactMarkdown>
+        </Box>
+      );
+    }
+    
+    // Regular text rendering for non-image content
+    return (
+      <Typography 
+        variant="body1" 
+        sx={{ 
+          mb: 2, 
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          color: theme.palette.text.secondary,
+          lineHeight: 1.6
+        }}
+      >
+        {content}
+      </Typography>
+    );
+  };
   
   const postDate = new Date(post.createdAt);
   const timeAgo = formatDistanceToNow(postDate, { addSuffix: true });
@@ -156,6 +202,7 @@ const handleDeleteClick = (event?: React.MouseEvent<HTMLElement>) => {
           boxShadow: theme.shadows[3]
         },
         border: '1px solid rgba(129, 93, 171, 0.1)',
+        width: '100%', // Ensure full width
       }}
       onClick={handleCardClick}
     >
@@ -243,18 +290,8 @@ const handleDeleteClick = (event?: React.MouseEvent<HTMLElement>) => {
           </Typography>
         )}
         
-        <Typography 
-          variant="body1" 
-          sx={{ 
-            mb: 2, 
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            color: theme.palette.text.secondary,
-            lineHeight: 1.6
-          }}
-        >
-          {post.content}
-        </Typography>
+        {/* Render content with proper image handling */}
+        {renderPostContent(post.content)}
       </CardContent>
       
       <Divider />
@@ -266,7 +303,7 @@ const handleDeleteClick = (event?: React.MouseEvent<HTMLElement>) => {
             initialLikeCount={likesCount}
             initialIsLiked={isLiked}
             currentUserId={currentUserId}
-            onLikeUpdate={onLikeUpdate}
+            onLikeUpdate={handleLikeUpdate}
           />
           
           <Box 
@@ -316,9 +353,9 @@ const handleDeleteClick = (event?: React.MouseEvent<HTMLElement>) => {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-          }} // Add this handler
+          }}
         >
-                <CommentsSection 
+          <CommentsSection 
             postId={post.postId}
             currentUserId={currentUserId}
           />
