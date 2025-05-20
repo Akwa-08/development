@@ -26,7 +26,7 @@ import {
 import { formatDistanceToNow } from 'date-fns';
 import { DELETE_COMMENT } from '../graphql/mutations';
 import CommentForm from './CommentForm';
-import UserAvatar from './UserAvatar'; // Add this import
+import UserAvatar from './UserAvatar';
 
 interface CommentItemProps {
   comment: {
@@ -148,7 +148,6 @@ const CommentItem: React.FC<CommentItemProps> = ({
       className="fade-in"
     >
       <Box sx={{ display: 'flex' }}>
-        {/* Replace Avatar with UserAvatar */}
         <UserAvatar 
           userId={comment.author.accountId}
           firstName={comment.author.firstName}

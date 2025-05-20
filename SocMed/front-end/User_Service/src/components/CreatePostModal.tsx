@@ -12,7 +12,6 @@ import {
   CircularProgress,
   Typography,
   Alert,
-  Avatar,
 } from '@mui/material';
 import { PhotoCamera, Close as CloseIcon } from '@mui/icons-material';
 import { supabase } from '../lib/supabase';
@@ -179,11 +178,11 @@ export default function CreatePostModal({
         }
       }}
     >
-      {/* Fixed: Don't nest Typography inside DialogTitle */}
+      {/* Title with close button */}
       <DialogTitle sx={{ pb: 1 }}>
         Create Post
       </DialogTitle>
-      {/* Add close button separately to avoid nesting issues */}
+      {/* Add close button separately */}
       <Box sx={{ position: 'absolute', right: 8, top: 8 }}>
         <IconButton
           edge="end"
@@ -260,9 +259,9 @@ export default function CreatePostModal({
           >
             Add Image
             <input
-              type="file"
               hidden
               accept="image/*"
+              type="file"
               onChange={handleImageChange}
             />
           </Button>

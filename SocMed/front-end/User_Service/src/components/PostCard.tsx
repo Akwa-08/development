@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
-  Paper, 
   Typography, 
   IconButton, 
   Menu, 
@@ -16,7 +15,6 @@ import {
   DialogContentText,
   DialogTitle,
   Button,
-  CircularProgress,
   useTheme,
   Card,
   CardContent,
@@ -36,7 +34,6 @@ import LikeButton from './LikeButton';
 import CommentsSection from './CommentsSection';
 import EditPostForm from './EditPostForm';
 import UserAvatar from './UserAvatar';
-import ReactMarkdown from 'react-markdown';
 
 interface PostCardProps {
   post: {
@@ -59,6 +56,7 @@ interface PostCardProps {
   onPostUpdated?: () => void;
   onFollowUpdate?: (userId: string, isFollowing: boolean) => void;
   onLikeUpdate?: (postId: string, isLiked: boolean, likeCount: number) => void;
+  renderContent?: (content: string) => React.ReactNode; // Added render function prop
 }
 
 const PostCard: React.FC<PostCardProps> = ({
@@ -67,7 +65,8 @@ const PostCard: React.FC<PostCardProps> = ({
   onPostDeleted,
   onPostUpdated,
   onFollowUpdate,
-  onLikeUpdate
+  onLikeUpdate,
+  renderContent
 }) => {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -75,19 +74,11 @@ const PostCard: React.FC<PostCardProps> = ({
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [showComments, setShowComments] = useState(false);
-  const [createPostModalOpen, setCreatePostModalOpen] = useState(false);
   
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setMenuAnchorEl(event.currentTarget);
     event.stopPropagation();
   };
-
-  const handleLikeUpdate = (postId: string, isLiked: boolean, likeCount: number) => {
-  // If provided, call the parent's onLikeUpdate
-  if (onLikeUpdate) {
-    onLikeUpdate(postId, isLiked, likeCount);
-  }
-};
   
   const handleMenuClose = (
     event: React.MouseEvent<HTMLElement> | {}, 
@@ -141,45 +132,6 @@ const PostCard: React.FC<PostCardProps> = ({
     event.stopPropagation();
     navigate(`/profile/${post.author.accountId}`);
   };
-
-  // Function to properly render content with images
-  const renderPostContent = (content: string) => {
-    // Check if content contains markdown image
-    if (content.includes('![') && content.includes('](') && content.includes(')')) {
-      return (
-        <Box sx={{ 
-          '& img': { 
-            maxWidth: '100%', 
-            height: 'auto',
-            borderRadius: 1,
-            my: 1
-          },
-          mb: 2,
-          wordBreak: 'break-word',
-          color: theme.palette.text.secondary,
-          lineHeight: 1.6
-        }}>
-          <ReactMarkdown>{content}</ReactMarkdown>
-        </Box>
-      );
-    }
-    
-    // Regular text rendering for non-image content
-    return (
-      <Typography 
-        variant="body1" 
-        sx={{ 
-          mb: 2, 
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-          color: theme.palette.text.secondary,
-          lineHeight: 1.6
-        }}
-      >
-        {content}
-      </Typography>
-    );
-  };
   
   const postDate = new Date(post.createdAt);
   const timeAgo = formatDistanceToNow(postDate, { addSuffix: true });
@@ -202,7 +154,7 @@ const PostCard: React.FC<PostCardProps> = ({
           boxShadow: theme.shadows[3]
         },
         border: '1px solid rgba(129, 93, 171, 0.1)',
-        width: '100%', // Ensure full width
+        width: '100%',
       }}
       onClick={handleCardClick}
     >
@@ -212,7 +164,6 @@ const PostCard: React.FC<PostCardProps> = ({
             userId={post.author.accountId}
             firstName={post.author.firstName}
             lastName={post.author.lastName}
-            profilePictureUrl={post.author.isFollowing !== undefined ? undefined : undefined}
             size={48}
             sx={{ 
               cursor: 'pointer',
@@ -290,8 +241,21 @@ const PostCard: React.FC<PostCardProps> = ({
           </Typography>
         )}
         
-        {/* Render content with proper image handling */}
-        {renderPostContent(post.content)}
+        {/* Use the renderContent function if provided, otherwise fall back to basic rendering */}
+        {renderContent ? renderContent(post.content) : (
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              mb: 2, 
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              color: theme.palette.text.secondary,
+              lineHeight: 1.6
+            }}
+          >
+            {post.content}
+          </Typography>
+        )}
       </CardContent>
       
       <Divider />
@@ -303,7 +267,7 @@ const PostCard: React.FC<PostCardProps> = ({
             initialLikeCount={likesCount}
             initialIsLiked={isLiked}
             currentUserId={currentUserId}
-            onLikeUpdate={handleLikeUpdate}
+            onLikeUpdate={onLikeUpdate}
           />
           
           <Box 

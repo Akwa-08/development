@@ -1,4 +1,4 @@
-// src/components/Profile.tsx - Update with profile picture upload
+// src/components/Profile.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
@@ -16,13 +16,27 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  Card,
+  CardContent,
+  Chip,
+  Avatar,
+  Stack,
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
+import {
+  EditOutlined as EditIcon,
+  EmailOutlined as EmailIcon,
+  PhoneOutlined as PhoneIcon,
+  HomeOutlined as HomeIcon,
+  CakeOutlined as CakeIcon,
+  PersonOutline as PersonIcon,
+  WcOutlined as GenderIcon,
+  LogoutOutlined as LogoutIcon,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useMutation } from '@apollo/client';
 import { UPDATE_PROFILE } from '../graphql/mutations';
-import ProfilePictureUpload from './ProfilePictureUpload'; // Add import
+import ProfilePictureUpload from './ProfilePictureUpload';
 
 // Interface for user profile data
 interface UserProfile {
@@ -38,6 +52,7 @@ interface UserProfile {
   banner_picture_url?: string;
   address?: string;
   phone?: string;
+  gender?: string;
 }
 
 // Interface for edit profile form
@@ -50,6 +65,7 @@ interface EditProfileForm {
   dateOfBirth: string;
   address: string;
   phone: string;
+  gender: string;
 }
 
 export const Profile: React.FC = () => {
@@ -67,6 +83,7 @@ export const Profile: React.FC = () => {
     dateOfBirth: '',
     address: '',
     phone: '',
+    gender: '',
   });
   const [notification, setNotification] = useState<{
     open: boolean;
@@ -93,6 +110,7 @@ export const Profile: React.FC = () => {
           date_of_birth: data.updateProfile.dateOfBirth || profile.date_of_birth,
           address: data.updateProfile.address || profile.address,
           phone: data.updateProfile.phone || profile.phone,
+          gender: data.updateProfile.gender || profile.gender,
         });
       }
       setIsEditDialogOpen(false);
@@ -114,42 +132,43 @@ export const Profile: React.FC = () => {
 
   // Fetch user profile data
   const fetchProfile = useCallback(async () => {
-  setLoading(true);
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    
-    const { data, error } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
       
-    if (error) throw error;
-    setProfile(data);
-    
-    // Initialize edit form with current values
-    setEditForm({
-      username: data.username || '',
-      firstName: data.first_name || '',
-      lastName: data.last_name || '',
-      middleName: data.middle_name || '',
-      bio: data.bio || '',
-      dateOfBirth: data.date_of_birth || '',
-      address: data.address || '',
-      phone: data.phone || '',
-    });
-  } catch (err: any) {
-    console.error('Error fetching profile:', err);
-    setError(err.message);
-  } finally {
-    setLoading(false);
-  }
-}, [navigate]); // Only depend on navigate
+      if (!user) {
+        navigate('/login');
+        return;
+      }
+      
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (error) throw error;
+      setProfile(data);
+      
+      // Initialize edit form with current values
+      setEditForm({
+        username: data.username || '',
+        firstName: data.first_name || '',
+        lastName: data.last_name || '',
+        middleName: data.middle_name || '',
+        bio: data.bio || '',
+        dateOfBirth: data.date_of_birth || '',
+        address: data.address || '',
+        phone: data.phone || '',
+        gender: data.gender || '',
+      });
+    } catch (err: any) {
+      console.error('Error fetching profile:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     fetchProfile();
@@ -179,6 +198,7 @@ export const Profile: React.FC = () => {
         dateOfBirth: editForm.dateOfBirth || undefined,
         address: editForm.address || undefined,
         phone: editForm.phone || undefined,
+        gender: editForm.gender || undefined,
       },
     });
   };
@@ -194,19 +214,35 @@ export const Profile: React.FC = () => {
 
   // Handle profile picture update success
   const handleProfilePictureUpdate = (url: string) => {
-  if (profile) {
-    setProfile({
-      ...profile,
-      profile_picture_url: url
+    if (profile) {
+      setProfile({
+        ...profile,
+        profile_picture_url: url
+      });
+    }
+    
+    setNotification({
+      open: true,
+      message: 'Profile picture updated successfully',
+      severity: 'success',
     });
-  }
-  
-  setNotification({
-    open: true,
-    message: 'Profile picture updated successfully',
-    severity: 'success',
-  });
-};
+  };
+
+  // Handle banner picture update
+  const handleBannerPictureUpdate = (url: string) => {
+    if (profile) {
+      setProfile({
+        ...profile,
+        banner_picture_url: url
+      });
+    }
+    
+    setNotification({
+      open: true,
+      message: 'Banner picture updated successfully',
+      severity: 'success',
+    });
+  };
 
   // Generate a banner color based on user ID for consistency
   const generateColorFromId = (id: string) => {
@@ -246,6 +282,50 @@ export const Profile: React.FC = () => {
     );
   }
 
+  // Define personal info items with icons
+  const personalInfoItems = profile ? [
+    { 
+      icon: <PersonIcon color="primary" />, 
+      label: 'First Name', 
+      value: profile.first_name 
+    },
+    { 
+      icon: <PersonIcon color="primary" />, 
+      label: 'Middle Name', 
+      value: profile.middle_name || 'Not specified' 
+    },
+    { 
+      icon: <PersonIcon color="primary" />, 
+      label: 'Last Name', 
+      value: profile.last_name 
+    },
+    { 
+      icon: <EmailIcon color="primary" />, 
+      label: 'Email', 
+      value: profile.email 
+    },
+    { 
+      icon: <PhoneIcon color="primary" />, 
+      label: 'Phone', 
+      value: profile.phone || 'Not specified' 
+    },
+    { 
+      icon: <CakeIcon color="primary" />, 
+      label: 'Date of Birth', 
+      value: profile.date_of_birth || 'Not specified' 
+    },
+    { 
+      icon: <HomeIcon color="primary" />, 
+      label: 'Address', 
+      value: profile.address || 'Not specified' 
+    },
+    { 
+      icon: <GenderIcon color="primary" />, 
+      label: 'Gender', 
+      value: profile.gender || 'Not specified' 
+    },
+  ] : [];
+
   return (
     <Box sx={{ bgcolor: '#f5f5f5', minHeight: '100vh', pt: 8 }}>
       <Container maxWidth="md" sx={{ mt: 2, mb: 4 }}>
@@ -267,7 +347,7 @@ export const Profile: React.FC = () => {
               )}
               
               {/* Profile Avatar - positioned to overlap the banner */}
-              <Box sx={{ position: 'absolute', bottom: -60, left: 24 }}>
+              <Box sx={{ position: 'absolute', bottom: -50, left: 24 }}>
                 <ProfilePictureUpload 
                   userId={profile.id}
                   currentProfilePicture={profile.profile_picture_url}
@@ -298,100 +378,87 @@ export const Profile: React.FC = () => {
                 {profile.first_name} {profile.last_name}
               </Typography>
               
-              <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+              <Typography variant="body1" color="text.secondary" sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                 @{profile.username || profile.first_name.toLowerCase() + profile.last_name.toLowerCase()}
+                <Chip 
+                  label="Member" 
+                  size="small" 
+                  color="primary" 
+                  variant="outlined"
+                  sx={{ ml: 1, height: 20, fontSize: '0.7rem' }} 
+                />
               </Typography>
               
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                {profile.bio || 'No bio available'}
-              </Typography>
+              <Box sx={{ 
+                p: 2, 
+                bgcolor: 'rgba(129, 93, 171, 0.05)', 
+                borderRadius: 2, 
+                mb: 3,
+                border: '1px dashed rgba(129, 93, 171, 0.3)'
+              }}>
+                <Typography variant="body1" sx={{ fontStyle: profile.bio ? 'normal' : 'italic' }}>
+                  {profile.bio || 'No bio available. Click "Edit Profile" to add a bio and tell others about yourself.'}
+                </Typography>
+              </Box>
               
               {/* Personal Information Section */}
-              <Paper elevation={0} sx={{ p: 3, mt: 3, borderRadius: 2, border: '1px solid #eee' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Card elevation={0} sx={{ p: 0, borderRadius: 2, border: '1px solid #eee', overflow: 'hidden' }}>
+                <Box sx={{ 
+                  bgcolor: 'primary.main', 
+                  color: 'white', 
+                  py: 1.5, 
+                  px: 3,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
                   <Typography variant="h6" fontWeight="bold">
                     Personal Information
                   </Typography>
                 </Box>
                 
-                <Divider sx={{ mb: 2 }} />
-                
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      First Name
-                    </Typography>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {profile.first_name}
-                    </Typography>
+                <Box sx={{ p: 3 }}>
+                  <Grid container spacing={3}>
+                    {personalInfoItems.map((item, index) => (
+                      <Grid item xs={12} sm={6} key={index}>
+                        <Box sx={{ 
+                          display: 'flex', 
+                          alignItems: 'center',
+                          p: 2,
+                          borderRadius: 2,
+                          bgcolor: 'background.paper',
+                          border: '1px solid rgba(0,0,0,0.08)',
+                          height: '100%'
+                        }}>
+                          <Avatar sx={{ bgcolor: 'rgba(129, 93, 171, 0.1)', mr: 2, color: 'primary.main' }}>
+                            {item.icon}
+                          </Avatar>
+                          <Box>
+                            <Typography variant="body2" color="text.secondary" gutterBottom>
+                              {item.label}
+                            </Typography>
+                            <Typography variant="body1" fontWeight="medium">
+                              {item.value}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </Grid>
+                    ))}
                   </Grid>
                   
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Birthday
-                    </Typography>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {profile.date_of_birth || 'Not specified'}
-                    </Typography>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Middle Name
-                    </Typography>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {profile.middle_name || 'Not specified'}
-                    </Typography>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Email
-                    </Typography>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {profile.email}
-                    </Typography>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Last Name
-                    </Typography>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {profile.last_name}
-                    </Typography>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Phone
-                    </Typography>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {profile.phone || 'Not specified'}
-                    </Typography>
-                  </Grid>
-                  
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" color="text.secondary">
-                      Address
-                    </Typography>
-                    <Typography variant="body1" sx={{ mb: 2 }}>
-                      {profile.address || 'Not specified'}
-                    </Typography>
-                  </Grid>
-                </Grid>
-                
-                <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={handleLogout}
-                    sx={{ borderRadius: 5 }}
-                  >
-                    Logout
-                  </Button>
+                  <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      startIcon={<LogoutIcon />}
+                      onClick={handleLogout}
+                      sx={{ borderRadius: 5 }}
+                    >
+                      Logout
+                    </Button>
+                  </Box>
                 </Box>
-              </Paper>
+              </Card>
             </Box>
           </Paper>
         ) : (
@@ -408,113 +475,204 @@ export const Profile: React.FC = () => {
         fullWidth
         maxWidth="sm"
       >
-        <DialogTitle>Edit Profile</DialogTitle>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Button sx={{ mr: 1 }} onClick={() => setIsEditDialogOpen(false)}>
+              &lt; Back
+            </Button>
+            <Typography variant="h6">Edit Profile</Typography>
+          </Box>
+        </DialogTitle>
         <DialogContent>
+          <Box sx={{ mb: 4, mt: 2 }}>
+            <Grid container spacing={4}>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle1" gutterBottom>Profile Picture</Typography>
+                {profile && (
+                  <ProfilePictureUpload 
+                    userId={profile.id}
+                    currentProfilePicture={profile.profile_picture_url}
+                    size={100}
+                    onUploadSuccess={handleProfilePictureUpdate}
+                  />
+                )}
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle1" gutterBottom>Banner Picture</Typography>
+                {/* Implement banner upload component */}
+                <Box 
+                  sx={{ 
+                    width: '100%', 
+                    height: 100,
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    bgcolor: 'rgba(0,0,0,0.05)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    '&:hover': {
+                      bgcolor: 'rgba(0,0,0,0.1)'
+                    }
+                  }}
+                >
+                  {profile?.banner_picture_url ? (
+                    <img 
+                      src={profile.banner_picture_url} 
+                      alt="Banner" 
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    />
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">Add Banner Image</Typography>
+                  )}
+                </Box>
+              </Grid>
+            </Grid>
+          </Box>
+          
+          <Typography variant="h6" gutterBottom>Personal Information</Typography>
           <Box component="form" sx={{ mt: 1 }}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  margin="normal"
-                  label="Username"
-                  name="username"
-                  value={editForm.username}
-                  onChange={handleFormChange}
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  margin="normal"
                   label="First Name"
                   name="firstName"
                   value={editForm.firstName}
                   onChange={handleFormChange}
+                  variant="outlined"
+                  size="small"
                 />
               </Grid>
               
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  margin="normal"
-                  label="Last Name"
-                  name="lastName"
-                  value={editForm.lastName}
-                  onChange={handleFormChange}
-                />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  margin="normal"
                   label="Middle Name"
                   name="middleName"
                   value={editForm.middleName}
                   onChange={handleFormChange}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="Bio"
-                  name="bio"
-                  multiline
-                  rows={3}
-                  value={editForm.bio}
-                  onChange={handleFormChange}
+                  variant="outlined"
+                  size="small"
                 />
               </Grid>
               
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  margin="normal"
-                  label="Date of Birth"
-                  name="dateOfBirth"
-                  placeholder="YYYY-MM-DD"
-                  value={editForm.dateOfBirth}
+                  label="Last Name"
+                  name="lastName"
+                  value={editForm.lastName}
                   onChange={handleFormChange}
+                  variant="outlined"
+                  size="small"
                 />
               </Grid>
               
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  margin="normal"
-                  label="Phone"
+                  label="Email"
+                  type="email"
+                  value={profile?.email || ''}
+                  disabled
+                  variant="outlined"
+                  size="small"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Username"
+                  name="username"
+                  value={editForm.username}
+                  onChange={handleFormChange}
+                  variant="outlined"
+                  size="small"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Phone Number"
                   name="phone"
                   value={editForm.phone}
                   onChange={handleFormChange}
+                  variant="outlined"
+                  size="small"
                 />
               </Grid>
               
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  margin="normal"
                   label="Address"
                   name="address"
                   value={editForm.address}
                   onChange={handleFormChange}
+                  variant="outlined"
+                  size="small"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Date of Birth"
+                  name="dateOfBirth"
+                  value={editForm.dateOfBirth}
+                  onChange={handleFormChange}
+                  placeholder="YYYY-MM-DD"
+                  variant="outlined"
+                  size="small"
+                />
+              </Grid>
+              
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  label="Gender"
+                  name="gender"
+                  value={editForm.gender}
+                  onChange={handleFormChange}
+                  variant="outlined"
+                  size="small"
+                />
+              </Grid>
+              
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Bio"
+                  name="bio"
+                  value={editForm.bio}
+                  onChange={handleFormChange}
+                  multiline
+                  rows={3}
+                  variant="outlined"
+                  size="small"
                 />
               </Grid>
             </Grid>
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsEditDialogOpen(false)} disabled={updateLoading}>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button 
+            onClick={() => setIsEditDialogOpen(false)} 
+            disabled={updateLoading}
+            variant="outlined"
+          >
             Cancel
           </Button>
           <Button 
             onClick={handleSubmitEdit} 
             variant="contained" 
+            color="primary"
             disabled={updateLoading}
           >
-            {updateLoading ? "Saving..." : "Save Changes"}
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>
@@ -529,6 +687,7 @@ export const Profile: React.FC = () => {
         <Alert 
           onClose={handleCloseNotification} 
           severity={notification.severity}
+          sx={{ width: '100%' }}
         >
           {notification.message}
         </Alert>
