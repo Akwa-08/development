@@ -5,6 +5,7 @@ import { useMutation, useQuery } from '@apollo/client';
 import { DELETE_POST } from '../graphql/mutations';
 import { GET_POST_COMMENTS } from '../graphql/queries';
 import { supabase } from "../lib/supabase";
+import ReactMarkdown from 'react-markdown';
 import {
   Box,
   Typography,
@@ -95,6 +96,41 @@ export default function Posts() {
   const handleOpenCreatePost = () => {
   console.log("Opening create post modal");
   setCreatePostModalOpen(true);
+};
+
+// Add this function inside the Posts component
+const renderPostContent = (content: string) => {
+  // Check if content contains markdown image syntax
+  if (content.includes('![') && content.includes('](') && content.includes(')')) {
+    return (
+      <Box sx={{ 
+        '& img': { 
+          maxWidth: '100%', 
+          height: 'auto',
+          borderRadius: 1,
+          my: 1
+        },
+        mb: 2,
+        wordBreak: 'break-word',
+        lineHeight: 1.6
+      }}>
+        <ReactMarkdown>{content}</ReactMarkdown>
+      </Box>
+    );
+  }
+  
+  // Regular text rendering for non-image content
+  return (
+    <Typography 
+      variant="body1" 
+      sx={{ 
+        mb: 2,
+        whiteSpace: 'pre-wrap'
+      }}
+    >
+      {content}
+    </Typography>
+  );
 };
 
 const handlePostCreated = () => {
@@ -801,15 +837,7 @@ useEffect(() => {
                     </Typography>
                   )}
                   
-                  <Typography 
-                    variant="body1" 
-                    sx={{ 
-                      mb: 2,
-                      whiteSpace: 'pre-wrap'
-                    }}
-                  >
-                    {post.content}
-                  </Typography>
+                  {renderPostContent(post.content)}
                   
                   {/* Post engagement options */}
                   <Box sx={{ display: 'flex', justifyContent: 'flex-start', gap: 4 }}>
